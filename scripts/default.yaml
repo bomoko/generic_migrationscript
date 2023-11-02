@@ -1,0 +1,95 @@
+steps:
+  - name: Print Migration Details
+    type: exec
+    local: true
+    command: echo "About to migrate from {{ CLUSTER_SOURCE_ID }} to {{ CLUSTER_TARGET_ID }}"
+  - name: Change deploy target
+    type: setdeploytarget
+    target: "{{ CLUSTER_TARGET_ID }}"
+  - name: Deploy
+    type: deploy
+    registerBuildIdAs: migrationbuild
+    skipDeploymentWait: false
+    buildVariables:
+    - name: LAGOON_BACKUPS_DISABLED
+      value: "LAGOON_BACKUPS_DISABLED"
+    - name: LAGOON_CUSTOM_ROUTES_DISABLED
+      value: "true"
+    - name: LAGOON_CRONJOBS_DISABLED
+      value: "true"
+    - name: LAGOON_PREROLLOUT_DISABLED
+      value: "true"
+    - name: LAGOON_POSTROLLOUT_DISABLED
+      value: "true"
+    - name: LAGOON_AUTOGEN_ROUTES_DISABLED
+      value: "true"
+  - name: Scale up cli deployment
+    type: scale
+    deployment: cli
+  - name: copy lagoon sync to cli pod
+    type: copyto
+    deployment: cli
+    source: /usr/local/bin/lagoon-sync
+    destination: /tmp/lagoon-sync-migrate    
+  - name: copy lagoon sync config to cli pod
+    type: copyto
+    deployment: cli
+    source: ./scripts/resources/lagoon-sync.yml
+    destination: /tmp/lagoon-sync-migrate.yml
+  - name: Drush clear cache
+    type: exec
+    deployment: cli
+    command: "drush cr"
+  - name: Copy Database
+    type: exec
+    deployment: cli
+    command: "/tmp/lagoon-sync-migrate sync mariadb --config=/tmp/lagoon-sync-migrate.yml --ssh-host={{ TASK_SSH_HOST ?? 'ssh.lagoon.amazeeio.cloud' }} --ssh-port={{ TASK_SSH_PORT ?? 22 }} -p {{ project }} -t {{ environment }} -e local --no-interaction --verbose"
+    # NOTE: we do the scaling and copying before each sync because if the cli pod dies (which has happened) we lose lagoon-sync on that pod, better safe than sorry.
+  - name: Scale up cli deployment
+    type: scale
+    deployment: cli
+  - name: copy lagoon sync to cli pod
+    type: copyto
+    deployment: cli
+    source: /usr/local/bin/lagoon-sync
+    destination: /tmp/lagoon-sync-migrate    
+  - name: copy lagoon sync config to cli pod
+    type: copyto
+    deployment: cli
+    source: ./scripts/resources/lagoon-sync.yml
+    destination: /tmp/lagoon-sync-migrate.yml
+  - name: Run rsync on files
+    type: exec
+    deployment: cli
+    command: "/tmp/lagoon-sync-migrate sync files --config=/tmp/lagoon-sync-migrate.yml --ssh-host={{ TASK_SSH_HOST ?? 'ssh.lagoon.amazeeio.cloud' }} --ssh-port={{ TASK_SSH_PORT ?? 22 }} -p {{ project }} -t {{ environment }} -e local --no-interaction --verbose"
+  - name: Final deploy into new cluster
+    type: deploy
+    buildVariables:
+      - name: LAGOON_PREROLLOUT_DISABLED
+        value: '{{ RUN_FINAL_ROLLOUT_TASKS | lower | trim == "true" ? "false" : "true" }}'
+      - name: LAGOON_POSTROLLOUT_DISABLED
+        value: '{{ RUN_FINAL_ROLLOUT_TASKS | lower | trim == "true" ? "false" : "true" }}'
+  # - name: pre-migration check, if not pre-migration, deploy into new cluster
+  #   type: conditional
+  #   condition: '{{ IS_PRE_MIGRATION | lower | trim == "false" }}' # this _isn't_ a pre-migration, so we need to do a final full deploy into the new cluster
+  #   steps:
+  #     - name: Final deploy into new cluster
+  #       type: deploy
+  #       buildVariables:
+  #         - name: LAGOON_PREROLLOUT_DISABLED
+  #           value: '{{ RUN_FINAL_ROLLOUT_TASKS | lower | trim == "true" ? "false" : "true" }}'
+  #         - name: LAGOON_POSTROLLOUT_DISABLED
+  #           value: '{{ RUN_FINAL_ROLLOUT_TASKS | lower | trim == "true" ? "false" : "true" }}'
+  # - name: pre-migration check, if not pre-migration, deploy into new cluster
+  #   type: conditional
+  #   condition: '{{ IS_PRE_MIGRATION | lower | trim == "true" }}' #this _is_ a pre-migration, so we set the deploy target back
+  #   steps:
+  #   - name: Pre-migration set deploy target back to source
+  #     type: setdeploytarget
+  #     target:  "{{ CLUSTER_SOURCE_ID }}"
+
+rollback:
+  - name: Rollback deploy target back to source
+    type: setdeploytarget
+    target: "{{ CLUSTER_SOURCE_ID }}"
+    retry: 3

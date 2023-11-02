@@ -1,0 +1,14 @@
+lagoon-sync:
+  ssh:
+    host: "ssh.main.lagoon-core.test6.amazee.io"
+    port: "22"
+  mariadb:
+    config:
+      hostname: "${MARIADB_HOST:-mariadb}"
+      username: "${MARIADB_USERNAME:-drupal}"
+      password: "${MARIADB_PASSWORD:-drupal}"
+      port: "${MARIADB_PORT:-3306}"
+      database: "${MARIADB_DATABASE:-drupal}"
+  files:
+    config:
+      sync-directory: "/app/web/sites/default/files/"

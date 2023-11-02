@@ -1,0 +1,32 @@
+mutation addMigrationTask {
+    addAdvancedTaskDefinition(input: {
+    name: "Migrate environment between clusters",
+    description: "Migrate environment between clusters",
+    image: "bomoko/clustermigrator:latest",
+    type: IMAGE,
+    permission: DEVELOPER,
+    deployTokenInjection: true,
+    projectKeyInjection: true,
+    project: 37,
+    advancedTaskDefinitionArguments: [
+      {
+        name: "CLUSTER_SOURCE_ID",
+        displayName: "The kubernetes cluster id to move from",
+        type: STRING,
+        optional: false,
+      },
+      {
+        name: "CLUSTER_TARGET_ID",
+        displayName: "The kubernetes cluster id to move to",
+        type: STRING,
+        optional: false,
+      }                 
+    ]
+      })
+  {
+  ... on AdvancedTaskDefinitionImage {
+    id
+    name
+   }
+ }
+}
