@@ -1,1 +1,1 @@
-# govcms-migration
+# generic migration
