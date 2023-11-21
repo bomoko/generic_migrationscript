@@ -12,7 +12,7 @@ steps:
     skipDeploymentWait: false
     buildVariables:
     - name: LAGOON_BACKUPS_DISABLED
-      value: "LAGOON_BACKUPS_DISABLED"
+      value: "true"
     - name: LAGOON_CUSTOM_ROUTES_DISABLED
       value: "true"
     - name: LAGOON_CRONJOBS_DISABLED
