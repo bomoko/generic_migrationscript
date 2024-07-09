@@ -1,13 +1,13 @@
-mutation addMigrationTask {
+mutation addMigrationTask($projectID: Int, $imageName: String) {
     addAdvancedTaskDefinition(input: {
     name: "Migrate environment between clusters",
     description: "Migrate environment between clusters",
-    image: "bomoko/clustermigrator:morecontrol",
+    image: $imageName,
     type: IMAGE,
     permission: DEVELOPER,
     deployTokenInjection: true,
     projectKeyInjection: true,
-    project: 675,
+    project: $projectID,
     advancedTaskDefinitionArguments: [
       {
         name: "CLUSTER_SOURCE_ID",
