@@ -2,12 +2,12 @@ mutation addMigrationTask {
     addAdvancedTaskDefinition(input: {
     name: "Migrate environment between clusters",
     description: "Migrate environment between clusters",
-    image: "bomoko/clustermigrator:latest",
+    image: "bomoko/clustermigrator:morecontrol",
     type: IMAGE,
     permission: DEVELOPER,
     deployTokenInjection: true,
     projectKeyInjection: true,
-    project: 37,
+    project: 675,
     advancedTaskDefinitionArguments: [
       {
         name: "CLUSTER_SOURCE_ID",
@@ -20,6 +20,12 @@ mutation addMigrationTask {
         displayName: "The kubernetes cluster id to move to",
         type: STRING,
         optional: false,
+      },
+      {
+        name: "FILE_TRANSFER_DIRECTORY",
+        displayName: "Directory to rsync",
+        type: STRING,
+        options: true,
       }                 
     ]
       })
